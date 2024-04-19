@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gRPCSampleClient", "gRPCClient\gRPCSampleClient.csproj", "{39BAD95A-1029-4588-9686-CADB06DDB2FD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gRPCSampleServer", "gRPCServer\gRPCSampleServer.csproj", "{B3C51D1A-F425-4480-AE5C-5DF103648109}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protos", "Protos", "{F5C6F38A-F6F4-4928-87E5-A8505DD564DE}"
+	ProjectSection(SolutionItems) = preProject
+		Protos\DataService.proto = Protos\DataService.proto
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{39BAD95A-1029-4588-9686-CADB06DDB2FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39BAD95A-1029-4588-9686-CADB06DDB2FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39BAD95A-1029-4588-9686-CADB06DDB2FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39BAD95A-1029-4588-9686-CADB06DDB2FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3C51D1A-F425-4480-AE5C-5DF103648109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C51D1A-F425-4480-AE5C-5DF103648109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3C51D1A-F425-4480-AE5C-5DF103648109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3C51D1A-F425-4480-AE5C-5DF103648109}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {22ECAEE5-844E-49DE-B1AB-C2180DF0E078}
+	EndGlobalSection
+EndGlobal

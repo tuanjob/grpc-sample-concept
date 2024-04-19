@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package DataServicePackage;
+
+// Define Protobuf messages
+message DataRequest {
+    // Define request message fields
+    string name = 1;
+}
+
+message DataResponse {
+    // Define response message fields
+    string message = 1;
+}
+
+// Define gRPC service
+service DataService {
+    rpc SubscribeToUpdates(DataRequest) returns (stream DataResponse);
+}
