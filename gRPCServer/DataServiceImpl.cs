@@ -8,31 +8,33 @@ using static DataServicePackage.DataService;
 // Implement gRPC service in Server1
 public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 {
-    private static IServerStreamWriter<DataResponse> _responseStream;
     private static Dictionary<string, IServerStreamWriter<DataResponse>> _clientStreams = new Dictionary<string, IServerStreamWriter<DataResponse>>();
     private static Dictionary<string, Queue<DataResponse>> _messageQueues = new Dictionary<string, Queue<DataResponse>>();
 
     private readonly object _lock = new object();
-    private string CLIENTID = Guid.NewGuid().ToString();
 
 
     public async override Task SubscribeToUpdates(DataRequest request, IServerStreamWriter<DataResponse> responseStream, ServerCallContext context)
     {
-        string clientId = CLIENTID;// context.Peer;
-
-        Console.WriteLine($"Client.... {clientId}");
+        Console.WriteLine($"Client \"{request.ClientId}\" is connected.");
 
         lock (_lock)
         {
-            _responseStream = responseStream;
-            _clientStreams[clientId] = responseStream;
-            _messageQueues[clientId] = new Queue<DataResponse>();
+            _clientStreams[request.ClientId] = responseStream;
+            if (!_messageQueues.TryGetValue(request.ClientId, out _))
+            {
+                _messageQueues[request.ClientId] = new Queue<DataResponse>();
+            }
         }
 
+        // #1 FULL DATA
+        // TODO: Call service to get FULL DATA
+
         // Send the full data first
-        await responseStream.WriteAsync(new DataResponse { Message = "Full Data Response at the first Time"});
+        await responseStream.WriteAsync(new DataResponse { Message = $"Full Data Response To {request.ClientId}"});
 
 
+        // #2 WAITING for incomming INC data and send to Client by calling InvokeGetIncrementalData1
         try
         {
             // Keep the call alive or handle incoming data updates, depending on your scenario.
@@ -41,7 +43,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             {
                 // Here, the method can wait for new incremental data to be invoked or just be responsive to cancellation
                 await Task.Delay(5000); // This delay is just to prevent a tight loop; adjust according to your needs.
-                FlushQueue(clientId, responseStream);
+                FlushQueue(request.ClientId, responseStream);
             }
         }
         finally
@@ -49,8 +51,8 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             // Clean up on disconnect
             lock (_lock)
             {
-                _clientStreams.Remove(clientId);
-                _messageQueues.Remove(clientId);
+                _clientStreams.Remove(request.ClientId);
+                _messageQueues.Remove(request.ClientId);
             }
         }
     }
@@ -70,9 +72,16 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         }
     }
 
-    public async Task InvokeGetIncrementalData1(string incData)
+    public async Task InvokeGetIncrementalData1(string clientId, string incData)
     {
-        var clientId = CLIENTID;
+
+        //if(clientId is null)
+        //{
+        //    Console.WriteLine("ERROR InvokeGetIncrementalData1 null clientID");
+            
+        //    return;
+        //}
+
         IServerStreamWriter<DataResponse> localStream;
         lock (_lock)
         {
@@ -81,7 +90,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 
         if (localStream != null)
         {
-            await localStream.WriteAsync(new DataResponse { Message = incData });
+            await localStream.WriteAsync(new DataResponse { Message = $"Data to client {clientId}, data: {incData}" });
         }
         else
         {
@@ -93,8 +102,9 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
                 }
                 else
                 {
-                    // Handle cases where there is no queue available, possibly due to a client that never connected or was cleaned up
-                    Console.WriteLine("No client connection or queue available for clientId: " + clientId);
+                    _messageQueues[clientId] = new Queue<DataResponse>();
+                    _messageQueues[clientId].Enqueue(new DataResponse { Message = $"[Added to Queue] Data to client {clientId}, data: {incData}" });
+                    Console.WriteLine($"Add clientId \"{clientId}\" into _messageQueues ");
                 }
             }
         }

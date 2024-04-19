@@ -29,7 +29,7 @@ var server = new Server
     Ports = { new ServerPort("localhost", Port, ServerCredentials.Insecure) }
 };
 server.Start();
-Console.WriteLine("Server listening on port " + Port);
+Console.WriteLine($"======= Server listening on port ${Port} =============");
 
 #endregion
 
@@ -40,7 +40,7 @@ int i = 0;
 do
 {
     Thread.Sleep(10000);
-    await _clientFactory.InvokeGetIncrementalData1($"INC data at {i}");
+    await _clientFactory.InvokeGetIncrementalData1("MCOutright001", $"INC data at {i}");
 
     i++;
 } while (i < 11);

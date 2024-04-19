@@ -1,14 +1,8 @@
-﻿using DataServicePackage;
-
-namespace gRPCSampleServer.Services
+﻿namespace gRPCSampleServer.Services
 {
     public interface IDataServiceInvoker
     {
-        //Task InvokeGetIncrementalData(string incData);
-
-        //void EnqueueUpdate(DataResponse updateMessage);
-
-        Task InvokeGetIncrementalData1(string incData);
+        Task InvokeGetIncrementalData1(string clientId, string incData);
     }
 
 }
