@@ -16,7 +16,6 @@ using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, service
 
     services.AddScoped<IDataServiceInvoker, DataServiceImpl>();
 
-
 })
 .Build();
 
@@ -35,12 +34,16 @@ Console.WriteLine($"======= Server listening on port ${Port} =============");
 
 #region Client
 
+// [INC] Sample for another service will call for data INC
 var _clientFactory = host.Services.GetRequiredService<IDataServiceInvoker>();
 int i = 0;
 do
 {
-    Thread.Sleep(10000);
+    Thread.Sleep(5000);
     await _clientFactory.InvokeGetIncrementalData1("MCOutright001", $"INC data at {i}");
+
+    Thread.Sleep(5000);
+    await _clientFactory.InvokeGetIncrementalData1("MCOutright002", $"INC data at {i}");
 
     i++;
 } while (i < 11);

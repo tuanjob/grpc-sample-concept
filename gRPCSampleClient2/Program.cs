@@ -7,7 +7,7 @@ using Grpc.Net.Client;
 using static DataServicePackage.DataService;
 
 
-const string clientName = "MCOutright001";
+const string clientName = "MCOutright002";
 Console.WriteLine($"======= CLIENT {clientName} Started =============");
 
 var channel = GrpcChannel.ForAddress("http://localhost:50051");

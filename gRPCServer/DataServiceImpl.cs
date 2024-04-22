@@ -3,6 +3,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using gRPCSampleServer.Services;
 using System.Threading.Tasks.Dataflow;
+using System.Xml.Linq;
 using static DataServicePackage.DataService;
 
 // Implement gRPC service in Server1
@@ -27,8 +28,8 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             }
         }
 
-        // #1 FULL DATA
-        // TODO: Call service to get FULL DATA
+        // #1 FULL DATA at the initial connection
+        // TODO: Call service to get (Prepare) FULL DATA
 
         // Send the full data first
         await responseStream.WriteAsync(new DataResponse { Message = $"Full Data Response To {request.ClientId}"});
@@ -46,6 +47,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
                 FlushQueue(request.ClientId, responseStream);
             }
         }
+       
         finally
         {
             // Clean up on disconnect
@@ -72,25 +74,68 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         }
     }
 
+    public async Task InvokeGetIncrementalData1(string incData)
+    {
+        // TODO
+    }
+
     public async Task InvokeGetIncrementalData1(string clientId, string incData)
     {
+        await SendData(clientId, incData);
+    }
 
-        //if(clientId is null)
-        //{
-        //    Console.WriteLine("ERROR InvokeGetIncrementalData1 null clientID");
-            
-        //    return;
-        //}
-
+    private async Task SendData(string clientId, string incData)
+    {
         IServerStreamWriter<DataResponse> localStream;
         lock (_lock)
         {
-            _clientStreams.TryGetValue(clientId, out localStream);
+            if (!_clientStreams.TryGetValue(clientId, out localStream))
+            {
+                Console.WriteLine($"[{clientId}] doesnot exist in Stream Response.");
+            }
         }
 
         if (localStream != null)
         {
-            await localStream.WriteAsync(new DataResponse { Message = $"Data to client {clientId}, data: {incData}" });
+            try
+            {
+                await localStream.WriteAsync(new DataResponse { Message = $"[CLIENT]: {clientId}, [DATA]: {incData}" });
+            }
+            catch (RpcException ex)// when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                // TODO #1
+                switch (ex.StatusCode)
+                {
+                    case StatusCode.Cancelled:
+                        Console.WriteLine($"Client \"{clientId}\" cancelled the connection");
+                        break;
+                    case StatusCode.DeadlineExceeded:
+                        Console.WriteLine($"Client \"{clientId}\" The call deadline was exceeded");
+                        break;
+                    case StatusCode.Unavailable:
+                        Console.WriteLine($"Client \"{clientId}\" The service is currently unavailable");
+                        break;
+                    case StatusCode.Unknown:
+                        Console.WriteLine($"Client \"{clientId}\" An unknown error occurred");
+                        break;
+                    case StatusCode.Internal:
+                        Console.WriteLine($"Client \"{clientId}\" Internal server error");
+                        break;
+                    default:
+                        Console.WriteLine($"An unexpected error occurred: {ex.StatusCode}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Optionally remove the client from the dictionary
+                _clientStreams.Remove(clientId);
+                Console.WriteLine($"Failed to send message to client {clientId}: {ex.Message}. Removed.");
+            }
+            finally
+            {
+                Console.WriteLine($"Finally send data to [{clientId}]");
+            }
         }
         else
         {
