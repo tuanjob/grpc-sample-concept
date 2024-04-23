@@ -4,17 +4,15 @@ package DataServicePackage;
 
 // Define Protobuf messages
 message DataRequest {
-    // Define request message fields
-    string name = 1;
     string client_id = 2;
 }
 
 message DataResponse {
-    // Define response message fields
-    string message = 1;
+    bytes data = 1;
 }
 
 // Define gRPC service
 service DataService {
-    rpc SubscribeToUpdates(DataRequest) returns (stream DataResponse);
+    rpc RequestOutrightFull(DataRequest) returns (stream DataResponse);
+    rpc SubscribeToOutrightInc(DataRequest) returns (stream DataResponse);
 }

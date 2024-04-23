@@ -2,6 +2,8 @@
 using DataServicePackage;
 using Grpc.Core;
 using Grpc.Net.Client;
+using gRPCSample.Core.Configurations;
+using gRPCSample.Core.Models;
 using gRPCSampleServer.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,43 +12,48 @@ using static DataServicePackage.DataService;
 
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-
 using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) =>
 {
-
     services.AddScoped<IDataServiceInvoker, DataServiceImpl>();
 
 })
 .Build();
 
 #region  Start gRPC Server
+var configManager = new ConfigurationManager();
+var serverSetting = configManager.GetSection<ServerSetting>("Server");
 
-const int Port = 50051;
 var server = new Server
 {
     Services = { DataService.BindService(new DataServiceImpl()) },
-    Ports = { new ServerPort("localhost", Port, ServerCredentials.Insecure) }
+    Ports = { new ServerPort(serverSetting.Host, serverSetting.Port, ServerCredentials.Insecure) }
 };
 server.Start();
-Console.WriteLine($"======= Server listening on port ${Port} =============");
+
+Console.WriteLine($"======= SERVER IS LISTENING AT PORT: ${serverSetting.Port} =============");
 
 #endregion
 
 #region Client
 
+
+// Get a simple list of strings
+var clients = configManager.GetSection<List<string>>("Clients");
+
 // [INC] Sample for another service will call for data INC
 var _clientFactory = host.Services.GetRequiredService<IDataServiceInvoker>();
-int i = 0;
+int i = 1;
 do
 {
-    Thread.Sleep(5000);
-    await _clientFactory.InvokeGetIncrementalData1("MCOutright001", $"INC data at {i}");
-
-    Thread.Sleep(5000);
-    await _clientFactory.InvokeGetIncrementalData1("MCOutright002", $"INC data at {i}");
+    var jsonInc = new JsonIncModel { MatchId = i, Mode = "Update", TimeIndex = (i * 2), Message = $"Inc Data at {(i * 2)}" };
+    foreach (var client in clients)
+    {
+        Thread.Sleep(5000);
+        await _clientFactory.InvokeSendIncrementalData(client, jsonInc);
+    }
 
     i++;
-} while (i < 11);
+} while (i < 12);
 
 
 

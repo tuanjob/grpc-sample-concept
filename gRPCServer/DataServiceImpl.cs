@@ -1,9 +1,8 @@
 ﻿using DataServicePackage;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using gRPCSample.Core.Helpers;
+using gRPCSample.Core.Models;
 using gRPCSampleServer.Services;
-using System.Threading.Tasks.Dataflow;
-using System.Xml.Linq;
 using static DataServicePackage.DataService;
 
 // Implement gRPC service in Server1
@@ -11,13 +10,39 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 {
     private static Dictionary<string, IServerStreamWriter<DataResponse>> _clientStreams = new Dictionary<string, IServerStreamWriter<DataResponse>>();
     private static Dictionary<string, Queue<DataResponse>> _messageQueues = new Dictionary<string, Queue<DataResponse>>();
-
     private readonly object _lock = new object();
 
 
-    public async override Task SubscribeToUpdates(DataRequest request, IServerStreamWriter<DataResponse> responseStream, ServerCallContext context)
+    /// <summary>
+    /// Handle request FULL and prepare FullData response to Client
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="responseStream"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
+    public async override Task RequestOutrightFull(DataRequest request, IServerStreamWriter<DataResponse> responseStream, ServerCallContext context)
     {
-        Console.WriteLine($"Client \"{request.ClientId}\" is connected.");
+        Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is connected.]");
+
+        // #1 FULL DATA at the initial connection
+        var jsonFull = new JsonFullModel { MatchId = 1, SportType = "S", TimeIndex = 1 };
+        var dataStream = await StreamHelper.SerializeToByteStringAsync(jsonFull);
+
+        // Send the full data first
+        await responseStream.WriteAsync(new DataResponse { Data = dataStream });
+    }
+
+
+    /// <summary>
+    /// Server Streaming, process data INC and Send to Client whenever has new data
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="responseStream"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
+    public async override Task SubscribeToOutrightInc(DataRequest request, IServerStreamWriter<DataResponse> responseStream, ServerCallContext context)
+    {
+        Console.WriteLine($"[INC][Client \"{request.ClientId}\" is connected.]");
 
         lock (_lock)
         {
@@ -28,36 +53,34 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             }
         }
 
-        // #1 FULL DATA at the initial connection
-        // TODO: Call service to get (Prepare) FULL DATA
 
-        // Send the full data first
-        await responseStream.WriteAsync(new DataResponse { Message = $"Full Data Response To {request.ClientId}"});
-
-
-        // #2 WAITING for incomming INC data and send to Client by calling InvokeGetIncrementalData1
+        //  #WAITING for incomming INC data and send to Client by calling InvokeGetIncrementalData
         try
         {
-            // Keep the call alive or handle incoming data updates, depending on your scenario.
-            // For example, listen for cancellation requests:
             while (!context.CancellationToken.IsCancellationRequested)
             {
-                // Here, the method can wait for new incremental data to be invoked or just be responsive to cancellation
-                await Task.Delay(5000); // This delay is just to prevent a tight loop; adjust according to your needs.
+                await Task.Delay(5000);
                 FlushQueue(request.ClientId, responseStream);
             }
         }
        
         finally
         {
+            Console.WriteLine($"=====> [Finally] Client {request.ClientId} Disconnected at {DateTime.Now}");
+
             // Clean up on disconnect
             lock (_lock)
             {
                 _clientStreams.Remove(request.ClientId);
-                _messageQueues.Remove(request.ClientId);
+
+                // TODO: should we remove frmo Queue or not?
+                // _messageQueues.Remove(request.ClientId);
             }
         }
     }
+
+    #region Private Methods
+
 
     private void FlushQueue(string clientId, IServerStreamWriter<DataResponse> stream)
     {
@@ -74,17 +97,33 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         }
     }
 
-    public async Task InvokeGetIncrementalData1(string incData)
+    /// <summary>
+    /// Send to all active clients
+    /// </summary>
+    /// <param name="incData"></param>
+    /// <returns></returns>
+    public async Task InvokeSendIncrementalData(JsonIncModel jsonInc)
     {
-        // TODO
+        // Get all clientIds
+        var clientIds = _clientStreams.Keys;
+        foreach(var clientId in clientIds)
+        {
+            await SendData(clientId, jsonInc);
+        }
     }
 
-    public async Task InvokeGetIncrementalData1(string clientId, string incData)
+    /// <summary>
+    /// Send to specific client
+    /// </summary>
+    /// <param name="clientId"></param>
+    /// <param name="incData"></param>
+    /// <returns></returns>
+    public async Task InvokeSendIncrementalData(string clientId, JsonIncModel jsonInc)
     {
-        await SendData(clientId, incData);
+        await SendData(clientId, jsonInc);
     }
 
-    private async Task SendData(string clientId, string incData)
+    private async Task SendData(string clientId, JsonIncModel jsonInc)
     {
         IServerStreamWriter<DataResponse> localStream;
         lock (_lock)
@@ -99,11 +138,14 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         {
             try
             {
-                await localStream.WriteAsync(new DataResponse { Message = $"[CLIENT]: {clientId}, [DATA]: {incData}" });
+                var dataStream = await StreamHelper.SerializeToByteStringAsync(jsonInc);
+
+                await localStream.WriteAsync(new DataResponse { Data = dataStream });
             }
-            catch (RpcException ex)// when (ex.StatusCode == StatusCode.Cancelled)
+            catch (RpcException ex)
             {
-                // TODO #1
+                Console.WriteLine($"[RpcException] Failed to send message to client {clientId}.");
+                // TODO #1 
                 switch (ex.StatusCode)
                 {
                     case StatusCode.Cancelled:
@@ -130,28 +172,35 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             {
                 // Optionally remove the client from the dictionary
                 _clientStreams.Remove(clientId);
-                Console.WriteLine($"Failed to send message to client {clientId}: {ex.Message}. Removed.");
+                Console.WriteLine($"[Exception] Failed to send message to client {clientId}: {ex.Message}. Removed.");
             }
             finally
             {
-                Console.WriteLine($"Finally send data to [{clientId}]");
+                Console.WriteLine($"[Finally] Send data to [{clientId}]");
             }
         }
         else
         {
             lock (_lock)
             {
+                jsonInc.Message += " => from [QUEUE]";
+                var dataStream = StreamHelper.SerializeToByteString(jsonInc);
+
                 if (_messageQueues.TryGetValue(clientId, out Queue<DataResponse> queue))
                 {
-                    queue.Enqueue(new DataResponse { Message = incData });
+                    queue.Enqueue(new DataResponse { Data = dataStream });
                 }
                 else
                 {
                     _messageQueues[clientId] = new Queue<DataResponse>();
-                    _messageQueues[clientId].Enqueue(new DataResponse { Message = $"[Added to Queue] Data to client {clientId}, data: {incData}" });
-                    Console.WriteLine($"Add clientId \"{clientId}\" into _messageQueues ");
+                    _messageQueues[clientId].Enqueue(new DataResponse { Data = dataStream });
                 }
+
+                Console.WriteLine($"Added clientId \"{clientId}\" into message Queues ");
             }
         }
     }
+
+    #endregion
+
 }

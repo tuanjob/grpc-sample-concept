@@ -17,6 +17,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\gRPCSample.Core\gRPCSample.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Protobuf Include="..\Protos\DataService.proto" GrpcServices="Client" />
 	</ItemGroup>
 
