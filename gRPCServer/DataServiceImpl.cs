@@ -3,13 +3,14 @@ using Grpc.Core;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
 using gRPCSampleServer.Services;
+using System.Collections.Concurrent;
 using static DataServicePackage.DataService;
 
 // Implement gRPC service in Server1
 public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 {
-    private static Dictionary<string, IServerStreamWriter<DataResponse>> _clientStreams = new Dictionary<string, IServerStreamWriter<DataResponse>>();
-    private static Dictionary<string, Queue<DataResponse>> _messageQueues = new Dictionary<string, Queue<DataResponse>>();
+    private static ConcurrentDictionary<string, IServerStreamWriter<DataResponse>> _clientStreams = new ConcurrentDictionary<string, IServerStreamWriter<DataResponse>>();
+    private static ConcurrentDictionary<string, Queue<DataResponse>> _messageQueues = new ConcurrentDictionary<string, Queue<DataResponse>>();
     private readonly object _lock = new object();
 
 
@@ -71,7 +72,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             // Clean up on disconnect
             lock (_lock)
             {
-                _clientStreams.Remove(request.ClientId);
+                _clientStreams.TryRemove(request.ClientId, out _);
 
                 // TODO: should we remove frmo Queue or not?
                 // _messageQueues.Remove(request.ClientId);
@@ -171,7 +172,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             catch (Exception ex)
             {
                 // Optionally remove the client from the dictionary
-                _clientStreams.Remove(clientId);
+                _clientStreams.TryRemove(clientId, out _);
                 Console.WriteLine($"[Exception] Failed to send message to client {clientId}: {ex.Message}. Removed.");
             }
             finally
