@@ -8,6 +8,7 @@ using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using static DataServicePackage.DataService;
 
 
@@ -54,19 +55,13 @@ async Task RequestOutrightFullAsync(string clientName)
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($" {JsonSerializer.Serialize(receivedDataFull)}");
                     Console.ResetColor();
-
-                    // TODO: Process data into JSON FULL and then return TimeIndex......
-
-                    // TODO: SET current TimeIndex
-                    currentTimeIndex[clientName] = 1; // TODO: will get from service ....
-                    Console.WriteLine($"1- Current TimeIndex: {currentTimeIndex[clientName]}");
                 }
                 break;
             }
         }
-        catch (Exception ex)
+        catch (RpcException ex)
         {
-            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
+            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server FULL response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
             await Task.Delay(initialDelay);
             initialDelay *= backoffFactor;  // Increase the delay for the next retry
             retryCount++;
@@ -87,6 +82,7 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
     int retryCount = 0;
     double backoffFactor = 2.0;
     TimeSpan initialDelay = TimeSpan.FromSeconds(1);
+    Grpc.Core.Status status = Status.DefaultSuccess;
 
     while (retryCount < maxRetries)
     {
@@ -94,7 +90,9 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
         {
             using (var call = _client.SubscribeToOutrightInc(new DataRequest { ClientId = clientName }))
             {
-                Console.WriteLine("CONNECTED .............");
+                // Console.WriteLine(call.ResponseStream.ReadAllAsync());
+                // call.chan
+
                 await foreach (var updateMessage in call.ResponseStream.ReadAllAsync())
                 {
                     var receivedData = await StreamHelper.DeserializeFromByteStringAsync<HDPOUIncOdds>(updateMessage.Data);
@@ -121,12 +119,13 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
                     //}
                 }
 
-                Console.WriteLine("CONNECTED .............");
                 break; // Break the loop if the connection was successful and completed without interruption
             }
         }
         catch (RpcException ex)
         {
+            status = ex.Status;
+
             Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
             await Task.Delay(initialDelay);
             initialDelay *= backoffFactor;  // Increase the delay for the next retry

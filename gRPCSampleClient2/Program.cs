@@ -6,7 +6,6 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
-using System.Collections.Concurrent;
 using System.Text.Json;
 using static DataServicePackage.DataService;
 
@@ -16,10 +15,6 @@ Console.WriteLine($"<<<<<<<<<<<<  CLIENT {clientName} Started  >>>>>>>>>>");
 
 var channel = GrpcChannel.ForAddress("http://localhost:50051");
 var _client = new DataServiceClient(channel);
-
-// Which is latest TimeIndex from succeed data before ....
-ConcurrentDictionary<string, long> currentTimeIndex = new ConcurrentDictionary<string, long>();
-
 
 // Request FULL
 await RequestOutrightFullAsync(clientName);
@@ -53,19 +48,13 @@ async Task RequestOutrightFullAsync(string clientName)
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($" {JsonSerializer.Serialize(receivedDataFull)}");
                     Console.ResetColor();
-
-                    // TODO: Process data into JSON FULL and then return TimeIndex......
-
-                    // TODO: SET current TimeIndex
-                    //currentTimeIndex[clientName] = receivedDataFull.TimeIndex;
-                    //Console.WriteLine($"1- Current TimeIndex: {currentTimeIndex[clientName]}");
                 }
                 break;
             }
         }
         catch (RpcException ex)
         {
-            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
+            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server FULL response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
             await Task.Delay(initialDelay);
             initialDelay *= backoffFactor;  // Increase the delay for the next retry
             retryCount++;
@@ -88,12 +77,17 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
     double backoffFactor = 2.0;
     TimeSpan initialDelay = TimeSpan.FromSeconds(1);
 
+    Grpc.Core.Status status = Status.DefaultSuccess;
+
     while (retryCount < maxRetries)
     {
         try
         {
             using (var call = _client.SubscribeToOutrightInc(new DataRequest { ClientId = clientName }))
             {
+
+                // if(call.)
+
                 await foreach (var updateMessage in call.ResponseStream.ReadAllAsync())
                 {
                     var receivedData = await StreamHelper.DeserializeFromByteStringAsync<HDPOUIncOdds>(updateMessage.Data);
@@ -122,8 +116,10 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
                 break; // Break the loop if the connection was successful and completed without interruption
             }
         }
-        catch (Exception ex)
+        catch (RpcException ex)
         {
+            status = ex.Status;
+
             Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
             await Task.Delay(initialDelay);
             initialDelay *= backoffFactor;  // Increase the delay for the next retry
