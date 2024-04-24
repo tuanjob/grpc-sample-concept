@@ -19,7 +19,7 @@ using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, service
 
     services.AddSingleton<IDataServiceInvoker, DataServiceImpl>();
     services.AddScoped<IOutrightFullDataService, OutrightFullJsonData>();
-    services.AddScoped<IOutrightIncDataService, OutrightIncJsonDataService>();
+    services.AddScoped<IOutrightIncDataService, OutrightIncJsonData>();
 })
 .Build();
 

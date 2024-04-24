@@ -5,10 +5,10 @@ using System.Collections.Generic;
 namespace gRPCSampleServer.FakeData
 {
 
-    public class OutrightIncDataService : IOutrightIncDataService
+    public class OutrightIncMemoryData : IOutrightIncDataService
     {
         private ConcurrentDictionary<string, HDPOUIncOdds> outrightIncOdds = new ConcurrentDictionary<string, HDPOUIncOdds>();
-        public OutrightIncDataService()
+        public OutrightIncMemoryData()
         {
             
         }

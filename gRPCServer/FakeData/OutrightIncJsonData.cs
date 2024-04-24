@@ -3,10 +3,10 @@ using gRPCSample.Core.Models;
 
 namespace gRPCSampleServer.FakeData
 {
-    public class OutrightIncJsonDataService : IOutrightIncDataService
+    public class OutrightIncJsonData : IOutrightIncDataService
     {
         private readonly JsonRepository _repository;
-        public OutrightIncJsonDataService()
+        public OutrightIncJsonData()
         {
             _repository = new JsonRepository("JsonData\\OutrightInc.json");
         }

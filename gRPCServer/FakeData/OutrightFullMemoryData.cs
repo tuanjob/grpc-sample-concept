@@ -4,10 +4,10 @@ using System.Collections.Concurrent;
 namespace gRPCSampleServer.FakeData
 {
 
-    public class OutrightFullDataService : IOutrightFullDataService
+    public class OutrightFullMemoryData : IOutrightFullDataService
     {
         private ConcurrentDictionary<int, FullOdds> outrightFullOdds = new ConcurrentDictionary<int, FullOdds>();
-        public OutrightFullDataService()
+        public OutrightFullMemoryData()
         {
             AddNewData(0);
         }
