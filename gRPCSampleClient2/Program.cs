@@ -6,6 +6,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using static DataServicePackage.DataService;
 
@@ -16,12 +17,18 @@ Console.WriteLine($"<<<<<<<<<<<<  CLIENT {clientName} Started  >>>>>>>>>>");
 var channel = GrpcChannel.ForAddress("http://localhost:50051");
 var _client = new DataServiceClient(channel);
 
+// Which is latest TimeIndex from succeed data before ....
+ConcurrentDictionary<string, long> currentTimeIndex = new ConcurrentDictionary<string, long>();
 
+
+// Request FULL
 await RequestOutrightFullAsync(clientName);
 
+// FULL should be finished first, then Request INC
 await SubsribeToGetOutrightIncAsync(clientName);
 
-#region Subscribe Data
+
+#region Get Full / Inc Data
 
 async Task RequestOutrightFullAsync(string clientName)
 {
@@ -40,13 +47,23 @@ async Task RequestOutrightFullAsync(string clientName)
             {
                 await foreach (var updateMessageFull in call.ResponseStream.ReadAllAsync())
                 {
-                    var receivedDataFull = await StreamHelper.DeserializeFromByteStringAsync<JsonFullModel>(updateMessageFull.Data);
-                    Console.WriteLine($"#2 Response FULL: {JsonSerializer.Serialize(receivedDataFull)}");
+                    var receivedDataFull = await StreamHelper.DeserializeFromByteStringAsync<List<FullOdds>>(updateMessageFull.Data);
+
+                    Console.WriteLine($"#2 Reponse FULL:");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($" {JsonSerializer.Serialize(receivedDataFull)}");
+                    Console.ResetColor();
+
+                    // TODO: Process data into JSON FULL and then return TimeIndex......
+
+                    // TODO: SET current TimeIndex
+                    //currentTimeIndex[clientName] = receivedDataFull.TimeIndex;
+                    //Console.WriteLine($"1- Current TimeIndex: {currentTimeIndex[clientName]}");
                 }
                 break;
             }
         }
-        catch (Exception ex)
+        catch (RpcException ex)
         {
             Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
             await Task.Delay(initialDelay);
@@ -64,7 +81,6 @@ async Task RequestOutrightFullAsync(string clientName)
 
 async Task SubsribeToGetOutrightIncAsync(string clientName)
 {
-
     Console.WriteLine($"#3 Request INC =============");
 
     const int maxRetries = 5;  // Maximum number of retries
@@ -78,11 +94,30 @@ async Task SubsribeToGetOutrightIncAsync(string clientName)
         {
             using (var call = _client.SubscribeToOutrightInc(new DataRequest { ClientId = clientName }))
             {
-
                 await foreach (var updateMessage in call.ResponseStream.ReadAllAsync())
                 {
-                    var receivedData = await StreamHelper.DeserializeFromByteStringAsync<JsonIncModel>(updateMessage.Data);
-                    Console.WriteLine($"#4 Reponse INC: {JsonSerializer.Serialize(receivedData)}");
+                    var receivedData = await StreamHelper.DeserializeFromByteStringAsync<HDPOUIncOdds>(updateMessage.Data);
+                    Console.WriteLine($"#4 Reponse INC:");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($" {JsonSerializer.Serialize(receivedData)}");
+                    Console.ResetColor();
+
+                    // TODO: Process data into JSON INC and then return TimeIndex......
+
+
+                    //Console.WriteLine($"==> Current TimeIndex: {currentTimeIndex[clientName]} NEW => {receivedData.TimeIndex}");
+                    //if (receivedData.TimeIndex == currentTimeIndex[clientName]  // at the first time
+                    //|| receivedData.TimeIndex == currentTimeIndex[clientName] + 1
+                    //    )
+                    //{
+                    //    currentTimeIndex[clientName] = receivedData.TimeIndex;
+                    //    Console.WriteLine($"OK .... Continue .... with Current TimeIndex: {currentTimeIndex[clientName]}");
+                    //}
+                    //else
+                    //{
+                    //    Console.WriteLine("BREAK this and call FULL again PLEASE....");
+                    //    await RequestOutrightFullAsync(clientName);
+                    //}
                 }
                 break; // Break the loop if the connection was successful and completed without interruption
             }

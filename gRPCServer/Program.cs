@@ -1,31 +1,38 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using DataServicePackage;
 using Grpc.Core;
-using Grpc.Net.Client;
 using gRPCSample.Core.Configurations;
 using gRPCSample.Core.Models;
+using gRPCSampleServer.FakeData;
 using gRPCSampleServer.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using static DataServicePackage.DataService;
 
-
+#region MAIN SERVICE HOST
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) =>
 {
-    services.AddScoped<IDataServiceInvoker, DataServiceImpl>();
+    // Register your gRPC service implementation
+    services.AddSingleton<DataServiceImpl>();
 
+    services.AddSingleton<IDataServiceInvoker, DataServiceImpl>();
+    services.AddScoped<IOutrightFullDataService, OutrightFullDataService>();
+    services.AddScoped<IOutrightIncDataService, OutrightIncDataService>();
 })
 .Build();
 
+#endregion
+
+
 #region  Start gRPC Server
+
 var configManager = new ConfigurationManager();
 var serverSetting = configManager.GetSection<ServerSetting>("Server");
 
 var server = new Server
 {
-    Services = { DataService.BindService(new DataServiceImpl()) },
+    Services = { DataService.BindService(host.Services.GetRequiredService<DataServiceImpl>()) },
     Ports = { new ServerPort(serverSetting.Host, serverSetting.Port, ServerCredentials.Insecure) }
 };
 server.Start();
@@ -34,28 +41,46 @@ Console.WriteLine($"======= SERVER IS LISTENING AT PORT: ${serverSetting.Port} =
 
 #endregion
 
-#region Client
 
-
-// Get a simple list of strings
-var clients = configManager.GetSection<List<string>>("Clients");
+#region INJECT SERVICES
 
 // [INC] Sample for another service will call for data INC
 var _clientFactory = host.Services.GetRequiredService<IDataServiceInvoker>();
-int i = 1;
-do
-{
-    var jsonInc = new JsonIncModel { MatchId = i, Mode = "Update", TimeIndex = (i * 2), Message = $"Inc Data at {(i * 2)}" };
-    foreach (var client in clients)
-    {
-        Thread.Sleep(5000);
-        await _clientFactory.InvokeSendIncrementalData(client, jsonInc);
-    }
+var _outrightFullDataService = host.Services.GetRequiredService<IOutrightFullDataService>();
+var _outrightIncDataService = host.Services.GetRequiredService<IOutrightIncDataService>();
 
-    i++;
-} while (i < 12);
+#endregion
+
+#region IMPLEMETATIONS
+
+// ============ 1
+Console.ForegroundColor = ConsoleColor.Green;
+Console.WriteLine("1 => Press any key to send Increment data .... ");
+Console.ReadLine();
+Console.WriteLine("#1 - Add First Incmental data .... Processing.....");
+
+var matchId = _outrightFullDataService.AddNew();
+var incData = _outrightIncDataService.AddNew(matchId, ModType.ADD, MarketType.Early, OddsCommand.GameDesc);
+await _clientFactory.InvokeSendIncrementalData(incData);
+
+// ============ 2
+Console.WriteLine("2=> Press any key to send Increment data .... ");
+Console.ReadLine();
+Console.WriteLine($"#2 - New Incmental data (Mode: Update for matchID: {matchId}) .... Processing.....");
+
+_outrightFullDataService.Update(matchId);
+incData = _outrightIncDataService.AddNew(matchId, ModType.MOD, MarketType.Early, OddsCommand.GameDesc);
+await _clientFactory.InvokeSendIncrementalData(incData);
+
+// ============ 3
+Console.WriteLine("3=> Press any key to send Increment data .... ");
+Console.ReadLine();
+Console.WriteLine($"#3 - New Incmental data (Mode: Delete for matchID: {matchId}) .... Processing.....");
 
 
+_outrightFullDataService.Delete(matchId);
+incData = _outrightIncDataService.AddNew(matchId, ModType.DEL, MarketType.Early, OddsCommand.GameDesc);
+await _clientFactory.InvokeSendIncrementalData(incData);
 
 #endregion
 

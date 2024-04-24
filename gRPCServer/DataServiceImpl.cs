@@ -2,6 +2,8 @@
 using Grpc.Core;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
+using gRPCSampleServer.FakeData;
+using gRPCSampleServer.Models;
 using gRPCSampleServer.Services;
 using System.Collections.Concurrent;
 using static DataServicePackage.DataService;
@@ -9,9 +11,15 @@ using static DataServicePackage.DataService;
 // Implement gRPC service in Server1
 public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 {
-    private static ConcurrentDictionary<string, IServerStreamWriter<DataResponse>> _clientStreams = new ConcurrentDictionary<string, IServerStreamWriter<DataResponse>>();
+    private static ConcurrentDictionary<string, ClientStreamData> _clientStreams = new ConcurrentDictionary<string, ClientStreamData>();
     private static ConcurrentDictionary<string, Queue<DataResponse>> _messageQueues = new ConcurrentDictionary<string, Queue<DataResponse>>();
     private readonly object _lock = new object();
+
+    private readonly IOutrightFullDataService _outrightFullDataService;
+    public DataServiceImpl(IOutrightFullDataService outrightFullDataService)
+    {
+        _outrightFullDataService = outrightFullDataService;
+    }
 
 
     /// <summary>
@@ -25,12 +33,18 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
     {
         Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is connected.]");
 
+
         // #1 FULL DATA at the initial connection
-        var jsonFull = new JsonFullModel { MatchId = 1, SportType = "S", TimeIndex = 1 };
-        var dataStream = await StreamHelper.SerializeToByteStringAsync(jsonFull);
+        var outrightFullData = _outrightFullDataService.GetAll();
+        var dataStream = await StreamHelper.SerializeToByteStringAsync(outrightFullData);
 
         // Send the full data first
         await responseStream.WriteAsync(new DataResponse { Data = dataStream });
+
+        // Reset MessageQueues (TODO)
+        InitialMessageQueues(request.ClientId);
+
+        Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is done GETTING DATA.]");
     }
 
 
@@ -47,11 +61,11 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
 
         lock (_lock)
         {
-            _clientStreams[request.ClientId] = responseStream;
-            if (!_messageQueues.TryGetValue(request.ClientId, out _))
-            {
-                _messageQueues[request.ClientId] = new Queue<DataResponse>();
-            }
+            // REGISTER client for Server Streaming ...
+            _clientStreams[request.ClientId] = new ClientStreamData(responseStream);
+
+            // REGISTER client for add Queue Messages (use when the client is lost connection to server )
+            InitialMessageQueues(request.ClientId);
         }
 
 
@@ -60,38 +74,53 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         {
             while (!context.CancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(5000);
-                FlushQueue(request.ClientId, responseStream);
+                // Console.WriteLine("[INC] waiting for sending data from QUEUES........");
+                // Wait for getting data from QUEUE => TODO: better way? 
+                await Task.Delay(3000);
+                // FlushQueue(request.ClientId, responseStream);
             }
         }
        
         finally
         {
-            Console.WriteLine($"=====> [Finally] Client {request.ClientId} Disconnected at {DateTime.Now}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"=====> [INC] Client {request.ClientId} Disconnected at {DateTime.Now}");
+            // Reset the colors to their defaults
+            Console.ResetColor();
 
-            // Clean up on disconnect
             lock (_lock)
             {
-                _clientStreams.TryRemove(request.ClientId, out _);
+                // Update status Connection ( Disconnected = true )
+                if(_clientStreams.TryGetValue(request.ClientId, out ClientStreamData client))
+                {
+                    client.DisConnected = true;
 
-                // TODO: should we remove frmo Queue or not?
-                // _messageQueues.Remove(request.ClientId);
+                    _clientStreams[request.ClientId] = client;
+                }
             }
         }
     }
 
     #region Private Methods
 
+    private void InitialMessageQueues(string clientId)
+    {
+        if (!_messageQueues.TryGetValue(clientId, out _))
+        {
+            _messageQueues[clientId] = new Queue<DataResponse>();
+        }
+    }
 
     private void FlushQueue(string clientId, IServerStreamWriter<DataResponse> stream)
     {
         lock (_lock)
         {
-            if (_messageQueues.TryGetValue(clientId, out Queue<DataResponse> queue))
+            if (_messageQueues.TryGetValue(clientId, out Queue<DataResponse> queues))
             {
-                while (queue.Count > 0)
+                // Console.WriteLine($"FlushQueue count: {queues.Count}");
+                while (queues.Count > 0)
                 {
-                    var message = queue.Dequeue();
+                    var message = queues.Dequeue();
                     stream.WriteAsync(message).Wait(); // Consider the implications of using Wait() here
                 }
             }
@@ -103,9 +132,9 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
     /// </summary>
     /// <param name="incData"></param>
     /// <returns></returns>
-    public async Task InvokeSendIncrementalData(JsonIncModel jsonInc)
+    public async Task InvokeSendIncrementalData(HDPOUIncOdds jsonInc)
     {
-        // Get all clientIds
+        // Get all clientIds ( allowed clients )
         var clientIds = _clientStreams.Keys;
         foreach(var clientId in clientIds)
         {
@@ -119,24 +148,28 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
     /// <param name="clientId"></param>
     /// <param name="incData"></param>
     /// <returns></returns>
-    public async Task InvokeSendIncrementalData(string clientId, JsonIncModel jsonInc)
+    public async Task InvokeSendIncrementalData(string clientId, HDPOUIncOdds jsonInc)
     {
-        await SendData(clientId, jsonInc);
+        // await SendData(clientId, jsonInc);
+        throw new Exception("Not implemented...");
     }
 
-    private async Task SendData(string clientId, JsonIncModel jsonInc)
+    private async Task SendData(string clientId, HDPOUIncOdds jsonInc)
     {
         IServerStreamWriter<DataResponse> localStream;
+        ClientStreamData clientStreamData;
+
         lock (_lock)
         {
-            if (!_clientStreams.TryGetValue(clientId, out localStream))
+            if (!_clientStreams.TryGetValue(clientId, out clientStreamData))
             {
                 Console.WriteLine($"[{clientId}] doesnot exist in Stream Response.");
             }
         }
 
-        if (localStream != null)
+        if (clientStreamData != null && !clientStreamData.DisConnected)
         {
+            localStream = clientStreamData.ServerStreamWriter;
             try
             {
                 var dataStream = await StreamHelper.SerializeToByteStringAsync(jsonInc);
@@ -171,20 +204,19 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             }
             catch (Exception ex)
             {
-                // Optionally remove the client from the dictionary
-                _clientStreams.TryRemove(clientId, out _);
                 Console.WriteLine($"[Exception] Failed to send message to client {clientId}: {ex.Message}. Removed.");
             }
             finally
             {
-                Console.WriteLine($"[Finally] Send data to [{clientId}]");
+                // Console.WriteLine($"[Finally] Send data to [{clientId}]");
             }
         }
-        else
+        else if(clientStreamData != null && clientStreamData.DisConnected)
         {
+
+            // If already Connected before and then disconnected => then new data should add to queue
             lock (_lock)
             {
-                jsonInc.Message += " => from [QUEUE]";
                 var dataStream = StreamHelper.SerializeToByteString(jsonInc);
 
                 if (_messageQueues.TryGetValue(clientId, out Queue<DataResponse> queue))
