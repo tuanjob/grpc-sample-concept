@@ -7,6 +7,7 @@ using gRPCSampleServer.FakeData;
 using gRPCSampleServer.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Text.Json;
 
 #region MAIN SERVICE HOST
 
@@ -17,8 +18,8 @@ using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, service
     services.AddSingleton<DataServiceImpl>();
 
     services.AddSingleton<IDataServiceInvoker, DataServiceImpl>();
-    services.AddScoped<IOutrightFullDataService, OutrightFullDataService>();
-    services.AddScoped<IOutrightIncDataService, OutrightIncDataService>();
+    services.AddScoped<IOutrightFullDataService, OutrightFullJsonData>();
+    services.AddScoped<IOutrightIncDataService, OutrightIncJsonDataService>();
 })
 .Build();
 
@@ -57,7 +58,7 @@ var _outrightIncDataService = host.Services.GetRequiredService<IOutrightIncDataS
 Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine("1 => Press any key to send Increment data .... ");
 Console.ReadLine();
-Console.WriteLine("#1 - Add First Incmental data .... Processing.....");
+Console.WriteLine("#1 - Add First Incremental data .... Processing.....");
 
 var matchId = _outrightFullDataService.AddNew();
 var incData = _outrightIncDataService.AddNew(matchId, ModType.ADD, MarketType.Early, OddsCommand.GameDesc);
@@ -66,7 +67,7 @@ await _clientFactory.InvokeSendIncrementalData(incData);
 // ============ 2
 Console.WriteLine("2=> Press any key to send Increment data .... ");
 Console.ReadLine();
-Console.WriteLine($"#2 - New Incmental data (Mode: Update for matchID: {matchId}) .... Processing.....");
+Console.WriteLine($"#2 - New Incremental data (Mode: Update for matchID: {matchId}) .... Processing.....");
 
 _outrightFullDataService.Update(matchId);
 incData = _outrightIncDataService.AddNew(matchId, ModType.MOD, MarketType.Early, OddsCommand.GameDesc);
@@ -75,7 +76,7 @@ await _clientFactory.InvokeSendIncrementalData(incData);
 // ============ 3
 Console.WriteLine("3=> Press any key to send Increment data .... ");
 Console.ReadLine();
-Console.WriteLine($"#3 - New Incmental data (Mode: Delete for matchID: {matchId}) .... Processing.....");
+Console.WriteLine($"#3 - New Incremental data (Mode: Delete for matchID: {matchId}) .... Processing.....");
 
 
 _outrightFullDataService.Delete(matchId);

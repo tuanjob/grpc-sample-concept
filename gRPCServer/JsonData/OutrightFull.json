@@ -1,0 +1,128 @@
+[
+	{
+		"MatchId": 1,
+		"OddsDiffs": null,
+		"Sports": {
+			"S": {
+				"SportOrder": 1,
+				"SportType": "S"
+			},
+			"BB": {
+				"SportOrder": 1,
+				"SportType": "BB"
+			}
+		},
+		"Leagues": {
+			"1": {
+				"LeagueId": 19676,
+				"LeagueTipId": 279,
+				"RunningLeagueOrder": 0,
+				"TodayLeagueOrder": 0,
+				"EarlyLeagueOrder": 0
+			},
+			"2": {
+				"LeagueId": 18185,
+				"LeagueTipId": 287,
+				"RunningLeagueOrder": 0,
+				"TodayLeagueOrder": 0,
+				"EarlyLeagueOrder": 0
+			}
+		},
+		"MatchGroups": {
+			"G1": {
+				"GameType": "S",
+				"LeagueId": 1,
+				"MatchGroupId": "G1",
+				"RunHomeScore": 0,
+				"RunAwayScore": 0,
+				"MatchDate": "2024-04-25T21:53:57.7471949+07:00",
+				"Period": 0,
+				"IsDanger": false,
+				"StartTime": "0001-01-01T00:00:00",
+				"RCHome": 0,
+				"RCAway": 0,
+				"MatchOrder": 0,
+				"StatsURL": null,
+				"OT": 0,
+				"IsET": false,
+				"TVLink": null,
+				"TeamInfo": 0,
+				"MarketType": 2,
+				"WorkingDate": "20240412",
+				"LiveDisplay": null,
+				"SpecialOrder": 0,
+				"SmartId": null,
+				"IsTradeIn": false,
+				"WinningPercent": 0,
+				"LosePercent": 0,
+				"IsSpecialMatch": false,
+				"IsDelay": false,
+				"HomeId": 1803,
+				"AwayId": 8275,
+				"SpecialId": null,
+				"IsLiveStatistics": false,
+				"IsLiveCenter": false,
+				"IsMatchTracker": false
+			},
+			"G2": {
+				"GameType": "S",
+				"LeagueId": 2,
+				"MatchGroupId": "G2",
+				"RunHomeScore": 0,
+				"RunAwayScore": 0,
+				"MatchDate": "2024-04-25T21:53:57.7485911+07:00",
+				"Period": 0,
+				"IsDanger": false,
+				"StartTime": "0001-01-01T00:00:00",
+				"RCHome": 0,
+				"RCAway": 0,
+				"MatchOrder": 0,
+				"StatsURL": null,
+				"OT": 0,
+				"IsET": false,
+				"TVLink": null,
+				"TeamInfo": 0,
+				"MarketType": 2,
+				"WorkingDate": "20240412",
+				"LiveDisplay": null,
+				"SpecialOrder": 0,
+				"SmartId": null,
+				"IsTradeIn": false,
+				"WinningPercent": 0,
+				"LosePercent": 0,
+				"IsSpecialMatch": false,
+				"IsDelay": false,
+				"HomeId": 14271,
+				"AwayId": 1810,
+				"SpecialId": null,
+				"IsLiveStatistics": false,
+				"IsLiveCenter": false,
+				"IsMatchTracker": false
+			}
+		},
+		"LeagueTips": {
+			"1": {
+				"LeagueTipId": 279
+			},
+			"2": {
+				"LeagueTipId": 287
+			}
+		},
+		"Matches": [
+			{
+				"MatchId": 1,
+				"IsHide": false,
+				"IsPause": false,
+				"StockType": 1,
+				"MatchGroupId": "2",
+				"Odds": 1,
+				"ValidTime": 145225,
+				"TicketCount": 11,
+				"HomeId": 0,
+				"AwayId": 0
+			}
+		],
+		"IsFinish": false,
+		"Sequence": 0
+	}
+]

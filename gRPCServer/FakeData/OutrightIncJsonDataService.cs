@@ -1,21 +1,14 @@
-﻿using gRPCSample.Core.Models;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using gRPCSample.Core.Helpers;
+using gRPCSample.Core.Models;
 
 namespace gRPCSampleServer.FakeData
 {
-
-    public class OutrightIncDataService : IOutrightIncDataService
+    public class OutrightIncJsonDataService : IOutrightIncDataService
     {
-        private ConcurrentDictionary<string, HDPOUIncOdds> outrightIncOdds = new ConcurrentDictionary<string, HDPOUIncOdds>();
-        public OutrightIncDataService()
+        private readonly JsonRepository _repository;
+        public OutrightIncJsonDataService()
         {
-            
-        }
-
-        public int MaxIncMatchKey()
-        {
-            return outrightIncOdds.Keys.Count();
+            _repository = new JsonRepository("JsonData\\OutrightInc.json");
         }
 
         public HDPOUIncOdds AddNew(int matchId, ModType mode, MarketType marketType, OddsCommand oddsCommand)
@@ -42,9 +35,18 @@ namespace gRPCSampleServer.FakeData
                 },
             };
 
-            outrightIncOdds[$"{matchId}:{mode.ToString()}"] = data;
+            var incAll = _repository.Get<List<HDPOUIncOdds>>();
+            incAll.Add(data);
+
+            _repository.Set<List<HDPOUIncOdds>>(incAll);
+
 
             return data;
+        }
+
+        public int MaxIncMatchKey()
+        {
+            return _repository.Get<List<HDPOUIncOdds>>().Select(r => r.FTSocOddsId).Max();
         }
     }
 }

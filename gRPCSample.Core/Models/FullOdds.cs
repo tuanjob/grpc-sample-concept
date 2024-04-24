@@ -19,6 +19,8 @@
 
         public int Sequence { get; set; }
 
+        public int MatchId { get; set; }
+
     }
 
     [Serializable]

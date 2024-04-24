@@ -3,14 +3,6 @@ using System.Collections.Concurrent;
 
 namespace gRPCSampleServer.FakeData
 {
-    public interface IOutrightFullDataService
-    {
-        List<FullOdds> GetAll();
-        int AddNew();
-        void Update(int matchId);
-        void Delete(int matchId);
-        int MaxFullMatchId();
-    }
 
     public class OutrightFullDataService : IOutrightFullDataService
     {
@@ -58,6 +50,7 @@ namespace gRPCSampleServer.FakeData
             // first record
             var first = new FullOdds
             {
+                MatchId = matchId,
                 Sports = new Dictionary<string, SportClass>()
                 {
                     {
