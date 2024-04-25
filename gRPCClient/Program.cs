@@ -6,21 +6,56 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
+using Polly;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using static DataServicePackage.DataService;
 
 
 const string clientName = "MCOutright001"; // => It should be a Client that allowed in gRPC Server
 Console.WriteLine($"<<<<<<<<<<<<  CLIENT {clientName} Started  >>>>>>>>>>");
 
-var channel = GrpcChannel.ForAddress("http://localhost:50051");
+
+#region Initila connection to SERVER
+
+var target = "http://localhost:50051";
+// For .net 5+, .net core 3+
+var handler = new SocketsHttpHandler
+{
+    // Configure keepalive settings
+    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+    KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+    KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
+    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always,
+};
+
+var httpClient = new HttpClient(handler);
+// Log connection-related events
+//httpClient.Timeout = TimeSpan.FromSeconds(10);
+//await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, target)).ContinueWith(task =>
+//{
+//    if (task.IsCompletedSuccessfully)
+//    {
+//        // Connection established successfully
+//        Console.WriteLine("Connection established successfully.");
+//    }
+//    else if (task.IsFaulted)
+//    {
+//        // Error occurred while establishing connection
+//        Console.WriteLine($"Error occurred while establishing connection: {task.Exception?.Message}");
+//    }
+//    else if (task.IsCanceled)
+//    {
+//        // Connection attempt was canceled
+//        Console.WriteLine("Connection attempt was canceled.");
+//    }
+//});
+
+var channel = GrpcChannel.ForAddress(target, new GrpcChannelOptions { HttpClient = httpClient, DisposeHttpClient = true });
 var _client = new DataServiceClient(channel);
 
-// Which is latest TimeIndex from succeed data before ....
-ConcurrentDictionary<string, long> currentTimeIndex = new ConcurrentDictionary<string, long>();
 
+#endregion
 
 
 // Request FULL
@@ -29,114 +64,111 @@ await RequestOutrightFullAsync(clientName);
 // FULL should be finished first, then Request INC
 await SubsribeToGetOutrightIncAsync(clientName);
 
+
 #region Get Full / Inc Data
 
 async Task RequestOutrightFullAsync(string clientName)
 {
-    Console.WriteLine($"#1 Request FULL =============");
+    Console.WriteLine("#1 Request FULL =============");
 
-    const int maxRetries = 5;  // Maximum number of retries
-    int retryCount = 0;
+    const int maxRetries = 15;  // Maximum number of retries
+    int retryCount = 0; // Counter for tracking retries
     double backoffFactor = 2.0;
     TimeSpan initialDelay = TimeSpan.FromSeconds(1);
 
-    while (retryCount < maxRetries)
+    var retryPolicy = Policy
+        .Handle<RpcException>() // Handle RpcException
+        .Or<HttpRequestException>() // Handle HTTP request exceptions
+        .WaitAndRetryAsync(maxRetries, // Maximum number of retries
+                           attempt => initialDelay * Math.Pow(backoffFactor, attempt), // Exponential backoff
+                           (exception, delay) => // On retry
+                           {
+                               Console.WriteLine($"Subscribe Data Server FULL response OFF... Retrying in {delay.TotalSeconds} seconds.");
+                               retryCount++;
+                           });
+
+    await retryPolicy.ExecuteAsync(async () =>
     {
-        try
+        if (retryCount == maxRetries)
         {
-            using (var call = _client.RequestOutrightFull(new DataRequest { ClientId = clientName }))
-            {
-                await foreach (var updateMessageFull in call.ResponseStream.ReadAllAsync())
-                {
-                    var receivedDataFull = await StreamHelper.DeserializeFromByteStringAsync<List<FullOdds>>(updateMessageFull.Data);
-
-
-                    Console.WriteLine($"#2 Reponse FULL:");
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($" {JsonSerializer.Serialize(receivedDataFull)}");
-                    Console.ResetColor();
-                }
-                break;
-            }
+            Console.WriteLine("Maximum retry attempts reached. Unable to connect to the server.");
         }
-        catch (RpcException ex)
-        {
-            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server FULL response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
-            await Task.Delay(initialDelay);
-            initialDelay *= backoffFactor;  // Increase the delay for the next retry
-            retryCount++;
-        }
-    }
 
-    if (retryCount == maxRetries)
-    {
-        Console.WriteLine("Maximum retry attempts reached. Unable to connect to the server.");
-    }
+        var respnose = _client.RequestOutrightFull(new DataRequest { ClientId = clientName });
+        var receivedDataFull = await StreamHelper.DeserializeFromByteStringAsync<List<FullOdds>>(respnose.Data);
+
+        Console.WriteLine("#2 Reponse FULL:");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($" {JsonSerializer.Serialize(receivedDataFull)}");
+        Console.ResetColor();
+    });
 }
 
 async Task SubsribeToGetOutrightIncAsync(string clientName)
 {
-    Console.WriteLine($"#3 Request INC =============");
+    Console.WriteLine("#3 Request INC =============");
 
-    const int maxRetries = 5;  // Maximum number of retries
-    int retryCount = 0;
+    const int maxRetries = 3;  // Maximum number of retries
     double backoffFactor = 2.0;
+    int retryCount = 0; // Counter for tracking retries
     TimeSpan initialDelay = TimeSpan.FromSeconds(1);
-    Grpc.Core.Status status = Status.DefaultSuccess;
 
-    while (retryCount < maxRetries)
+    var retryPolicy = Policy
+        .Handle<RpcException>() // Handle RpcException
+        // .Or<HttpRequestException>() // Handle HTTP request exceptions
+        .WaitAndRetryAsync(maxRetries, // Maximum number of retries
+                           attempt => initialDelay * Math.Pow(backoffFactor, attempt), // Exponential backoff
+                           (exception, delay) => // On retry
+                           {
+                               Console.WriteLine($"INC Subscribe Data Server response OFF... Retrying in {delay.TotalSeconds} seconds.");
+                               retryCount++;
+                           });
+
+
+
+    await retryPolicy.ExecuteAsync(async () =>
     {
-        try
+        if (retryCount == maxRetries)
         {
+            Console.WriteLine("Maximum retry attempts reached. Unable to connect to the server.");
+            // TODO: need to have another action to cover this case ...
+            return;
+        }
+
+        Console.WriteLine($"=====> {retryCount}");
+
+        if(retryCount > 0)
+        {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"SHOULD call the process reConnection.......");
+                    Console.ResetColor();
+        }
+
+        //try
+        //{
             using (var call = _client.SubscribeToOutrightInc(new DataRequest { ClientId = clientName }))
             {
-                // Console.WriteLine(call.ResponseStream.ReadAllAsync());
-                // call.chan
-
                 await foreach (var updateMessage in call.ResponseStream.ReadAllAsync())
                 {
                     var receivedData = await StreamHelper.DeserializeFromByteStringAsync<HDPOUIncOdds>(updateMessage.Data);
 
-                    Console.WriteLine($"#4 Reponse INC:");
+                    Console.WriteLine("#4 Reponse INC:");
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($" {JsonSerializer.Serialize(receivedData)}");
                     Console.ResetColor();
 
-                    // TODO: Process data into JSON Incremental and then return TimeIndex......
-
-                    //Console.WriteLine($"==> Current TimeIndex: {currentTimeIndex[clientName]} NEW => {receivedData.TimeIndex}");
-                    //if(receivedData.TimeIndex == currentTimeIndex[clientName]  // at the first time
-                    //|| receivedData.TimeIndex == currentTimeIndex[clientName] + 1 
-                    //    )
-                    //{
-                    //   currentTimeIndex[clientName] = receivedData.TimeIndex;
-                    //   Console.WriteLine($"OK .... Continue .... with Current TimeIndex: {currentTimeIndex[clientName]}");
-                    //}
-                    //else
-                    //{
-                    //    Console.WriteLine("BREAK this and call FULL again PLEASE....");
-                    //    await RequestOutrightFullAsync(clientName);
-                    //}
                 }
-
-                break; // Break the loop if the connection was successful and completed without interruption
             }
-        }
-        catch (RpcException ex)
-        {
-            status = ex.Status;
-
-            Console.WriteLine($"Attempt {retryCount + 1}: Subscribe Data Server response OFF... Retrying in {initialDelay.TotalSeconds} seconds.");
-            await Task.Delay(initialDelay);
-            initialDelay *= backoffFactor;  // Increase the delay for the next retry
-            retryCount++;
-        }
-    }
-
-    if (retryCount == maxRetries)
-    {
-        Console.WriteLine("Maximum retry attempts reached. Unable to connect to the server.");
-    }
+        //}
+        //catch (RpcException ex)
+        //{
+        //    Console.ForegroundColor = ConsoleColor.Red;
+        //    Console.WriteLine("Error connected to server ....");
+        //    Console.ResetColor();
+        //}
+        
+    });
+    
 }
 
 #endregion

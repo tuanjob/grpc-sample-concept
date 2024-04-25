@@ -13,6 +13,6 @@ message DataResponse {
 
 // Define gRPC service
 service DataService {
-    rpc RequestOutrightFull(DataRequest) returns (stream DataResponse);
+    rpc RequestOutrightFull(DataRequest) returns (DataResponse);
     rpc SubscribeToOutrightInc(DataRequest) returns (stream DataResponse);
 }

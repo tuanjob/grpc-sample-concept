@@ -29,22 +29,20 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
     /// <param name="responseStream"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    public async override Task RequestOutrightFull(DataRequest request, IServerStreamWriter<DataResponse> responseStream, ServerCallContext context)
+    public async override Task<DataResponse> RequestOutrightFull(DataRequest request, ServerCallContext context)
     {
         Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is connected.]");
-
 
         // #1 FULL DATA at the initial connection
         var outrightFullData = _outrightFullDataService.GetAll();
         var dataStream = await StreamHelper.SerializeToByteStringAsync(outrightFullData);
 
-        // Send the full data first
-        await responseStream.WriteAsync(new DataResponse { Data = dataStream });
-
         // Reset MessageQueues (TODO)
-        InitialMessageQueues(request.ClientId);
+        // InitialMessageQueues(request.ClientId);
 
-        Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is done GETTING DATA.]");
+        Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is done for GETTING DATA.]");
+
+        return new DataResponse { Data = dataStream };
     }
 
 
@@ -65,23 +63,26 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             _clientStreams[request.ClientId] = new ClientStreamData(responseStream);
 
             // REGISTER client for add Queue Messages (use when the client is lost connection to server )
-            InitialMessageQueues(request.ClientId);
+            // InitialMessageQueues(request.ClientId);
         }
-
 
         //  #WAITING for incomming INC data and send to Client by calling InvokeGetIncrementalData
         try
         {
             while (!context.CancellationToken.IsCancellationRequested)
             {
-                // Console.WriteLine("[INC] waiting for sending data from QUEUES........");
-                // Wait for getting data from QUEUE => TODO: better way? 
-                await Task.Delay(3000);
+                // await Task.Delay(3000);
                 // FlushQueue(request.ClientId, responseStream);
             }
         }
-       
-        finally
+        catch(RpcException ex)
+        {
+            Console.WriteLine($"[INC] Exception... => {ex.GetType().Name}");
+        }
+
+
+        // Register a callback when the client disconnects
+        context.CancellationToken.Register(() =>
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"=====> [INC] Client {request.ClientId} Disconnected at {DateTime.Now}");
@@ -91,18 +92,19 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             lock (_lock)
             {
                 // Update status Connection ( Disconnected = true )
-                if(_clientStreams.TryGetValue(request.ClientId, out ClientStreamData client))
+                if (_clientStreams.TryGetValue(request.ClientId, out ClientStreamData client))
                 {
                     client.DisConnected = true;
 
                     _clientStreams[request.ClientId] = client;
                 }
             }
-        }
+        });
     }
 
     #region Private Methods
 
+    /*
     private void InitialMessageQueues(string clientId)
     {
         if (!_messageQueues.TryGetValue(clientId, out _))
@@ -126,6 +128,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
             }
         }
     }
+    */
 
     /// <summary>
     /// Send to all active clients
@@ -213,7 +216,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         }
         else if(clientStreamData != null && clientStreamData.DisConnected)
         {
-
+            // TODO: should have new idea for how to do this??
             // If already Connected before and then disconnected => then new data should add to queue
             lock (_lock)
             {

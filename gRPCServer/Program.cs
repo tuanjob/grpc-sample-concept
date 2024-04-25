@@ -1,6 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using DataServicePackage;
 using Grpc.Core;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Configuration;
 using gRPCSample.Core.Configurations;
 using gRPCSample.Core.Models;
 using gRPCSampleServer.FakeData;
@@ -34,8 +36,11 @@ var serverSetting = configManager.GetSection<ServerSetting>("Server");
 var server = new Server
 {
     Services = { DataService.BindService(host.Services.GetRequiredService<DataServiceImpl>()) },
-    Ports = { new ServerPort(serverSetting.Host, serverSetting.Port, ServerCredentials.Insecure) }
+    Ports = { new ServerPort(serverSetting.Host, serverSetting.Port, ServerCredentials.Insecure)},
 };
+
+
+
 server.Start();
 
 Console.WriteLine($"======= SERVER IS LISTENING AT PORT: ${serverSetting.Port} =============");
