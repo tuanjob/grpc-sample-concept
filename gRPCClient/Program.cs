@@ -8,6 +8,7 @@ using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
 using Polly;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text.Json;
 using static DataServicePackage.DataService;
 
@@ -51,18 +52,49 @@ var httpClient = new HttpClient(handler);
 //    }
 //});
 
-var channel = GrpcChannel.ForAddress(target, new GrpcChannelOptions { HttpClient = httpClient, DisposeHttpClient = true });
+// var channel = GrpcChannel.ForAddress(target, new GrpcChannelOptions { HttpClient = httpClient, DisposeHttpClient = true });
+var channel = GrpcChannel.ForAddress(target);
 var _client = new DataServiceClient(channel);
 
 
 #endregion
 
+await SubsribeToGetOutrightIncAsync1(clientName);
+async Task SubsribeToGetOutrightIncAsync1(string clientName)
+{
+    Console.WriteLine("#3 Request INC =============");
+
+    while (true)
+    {
+        try
+        {
+            using (var call = _client.SubscribeToOutrightInc(new DataRequest { ClientId = clientName }))
+            {
+                Console.WriteLine($"CALLING .............: {call.GetType()}");
+                await foreach (var response in call.ResponseStream.ReadAllAsync())
+                {
+                    var receivedData = await StreamHelper.DeserializeFromByteStringAsync<HDPOUIncOdds>(response.Data);
+
+                    Console.WriteLine($"Client ID {clientName} got response: {receivedData.FTSocOddsId}");
+                }
+            }
+        }
+        catch (RpcException ex)
+        {
+            Console.WriteLine($"Failed to receive message: {ex.Status.Detail}");
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(10));
+    }
+}
+
+
 
 // Request FULL
-await RequestOutrightFullAsync(clientName);
+// await RequestOutrightFullAsync(clientName);
 
 // FULL should be finished first, then Request INC
-await SubsribeToGetOutrightIncAsync(clientName);
+// await SubsribeToGetOutrightIncAsync(clientName);
 
 
 #region Get Full / Inc Data
