@@ -1,5 +1,7 @@
 ﻿namespace gRPCSample.Core.Models
 {
+
+
     [Serializable]
     public class FullOdds
     {

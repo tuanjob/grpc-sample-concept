@@ -91,6 +91,29 @@ await _clientFactory.InvokeSendIncrementalData(incData);
 #endregion
 
 
+/*
+ * 
+ * 1.[Outirght FULL] gRPC Unary Client -> Server
+ * [1] Client request Full data -> Server
+ * [2] Server receive request and call service for preparing Full Data
+ * 
+ * 2. [Outright INC] gRPC Server Streaming: Client <-> Server
+ * [1] Client make request (ex: Subscribe....) -> Server: at server also store clients like <client_id, IServerStreamWriter<>>
+ * [2] when Server has new data Inc, then will send data to all client_ids
+ * 
+ * 
+ * 2.1 Exception cases:
+ * a. Client has problems ( restart, error...) and reconnect to Server => will request from full, then inc as normal
+ * 
+ * 2- Server has problems ( restart, error, ... ) and all clients will re-connect to server: 
+ * + Load Full then Inc as normal: if .....
+ * + Continue with load: if ....
+ * 
+ * 
+ * 
+ */
+
+
 Console.WriteLine("Press any key to stop the server...");
 Console.ReadKey();
 

@@ -216,6 +216,8 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
         }
         else if(clientStreamData != null && clientStreamData.DisConnected)
         {
+            return;
+
             // TODO: should have new idea for how to do this??
             // If already Connected before and then disconnected => then new data should add to queue
             lock (_lock)
@@ -232,7 +234,7 @@ public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
                     _messageQueues[clientId].Enqueue(new DataResponse { Data = dataStream });
                 }
 
-                Console.WriteLine($"Added clientId \"{clientId}\" into message Queues ");
+                // Console.WriteLine($"Added clientId \"{clientId}\" into message Queues ");
             }
         }
     }
