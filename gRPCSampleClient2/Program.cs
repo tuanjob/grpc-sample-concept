@@ -83,6 +83,8 @@ async Task SubsribeToGetOutrightIncAsync(string clientName, CancellationToken ca
                     {
                         MyConsole.WriteLine(ConsoleColor.Yellow, $"Client has been trying to re-connect \"{retryConnectedToServer} TIMEs\". (TODO) Need to check data response for make decission to get FULL data or not?");
                         retryConnectedToServer = 0;
+
+                        //TODO:  Maybe we need to request full data first.
                     }
 
 

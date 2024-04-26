@@ -106,9 +106,8 @@ await _clientFactory.InvokeSendIncrementalData(incData);
  * a. Client has problems ( restart, error...) and reconnect to Server => will request from full, then inc as normal
  * 
  * 2- Server has problems ( restart, error, ... ) and all clients will re-connect to server: 
- * + Load Full then Inc as normal: if .....
- * + Continue with load: if ....
- * 
+ * + Load Full then Inc as normal: if ..... #1
+ * + Continue with load: if .... #2
  * 
  * 
  */

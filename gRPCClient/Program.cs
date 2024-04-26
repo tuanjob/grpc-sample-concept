@@ -11,9 +11,8 @@ using System.Text.Json;
 using static DataServicePackage.DataService;
 
 
-Console.ResetColor();
-
-string clientName = Guid.NewGuid().ToString();// Client contextId
+var d = DateTime.Now;
+string clientName = $"MCO_CLIENT_{d.Minute}_{d.Second}";// Guid.NewGuid().ToString();// Client contextId
 MyConsole.WriteLine($"<<<<<<<<<<<<  CLIENT {clientName} Started  >>>>>>>>>>");
 
 
@@ -111,7 +110,7 @@ async Task RequestOutrightFullAsync(string clientName, CancellationToken cancell
 
 async Task SubsribeToGetOutrightIncAsync(string clientName, CancellationToken cancellationToken)
 {
-    MyConsole.WriteLine("#3 Request INC =============");
+    MyConsole.WriteLine("#3 Request INC and WAITING for Response... =============");
     var retryConnectedToServer = 0;
 
     // long-running tasks (for Long live Streaming)
@@ -129,17 +128,19 @@ async Task SubsribeToGetOutrightIncAsync(string clientName, CancellationToken ca
                     {
                         MyConsole.WriteLine(ConsoleColor.Yellow, $"Client has been trying to re-connect \"{retryConnectedToServer} TIMEs\". (TODO) Need to check data response for make decission to get FULL data or not?");
                         retryConnectedToServer = 0;
+
+                        //TODO:  Maybe we need to request full data first.
                     }
 
 
-                    MyConsole.WriteLine("#4 Reponse INC:");
+                    MyConsole.WriteLine("#4 Reponse INC from server:");
                     MyConsole.WriteLine(ConsoleColor.Green, $" {JsonSerializer.Serialize(receivedData)}");
                 }
             }
         }
         catch (RpcException ex)
         {
-            MyConsole.WriteLine($"Failed to receive message: {ex.Status.Detail}");
+            MyConsole.WriteLine($"Lost connection to server, message error: {ex.Status.Detail}");
         }
 
         await Task.Delay(TimeSpan.FromSeconds(1));
