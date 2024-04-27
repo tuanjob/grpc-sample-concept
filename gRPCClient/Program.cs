@@ -1,14 +1,46 @@
 ﻿// See https://aka.ms/new-console-template for more information
 // Console.WriteLine("Hello, World!");
 // Implement gRPC client logic in Client1
+
+#define useQueue
+
 using DataServicePackage;
 using Grpc.Core;
 using Grpc.Net.Client;
 using gRPCSample.Core.Helpers;
 using gRPCSample.Core.Models;
+using gRPCSampleClient1.Processors;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Polly;
 using System.Text.Json;
 using static DataServicePackage.DataService;
+
+
+
+#region MAIN SERVICE HOST
+
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+using IHost host = Host.CreateDefaultBuilder(args).ConfigureServices((_, services) =>
+{
+    // Register your gRPC service implementation
+    services.AddSingleton<IOutrightDataProcessor, OutrightDataProcessor>();
+    services.AddScoped<IRedisDatabase, RedisDatabase>();
+
+
+})
+.Build();
+
+var _outrightDataProcessor = host.Services.GetRequiredService<IOutrightDataProcessor>();
+#if(useQueue)
+{
+    // Start the background processing
+    _outrightDataProcessor.StartProcessing(new CancellationToken(false));
+}
+#endif
+
+
+#endregion
 
 
 var d = DateTime.Now;
@@ -69,6 +101,7 @@ await RequestOutrightFullAsync(clientName, CancellationToken.None);
 
 // FULL should be finished first, then Request INC
 await SubsribeToGetOutrightIncAsync(clientName, CancellationToken.None);
+
 
 
 #region Get Full / Inc Data
@@ -132,9 +165,21 @@ async Task SubsribeToGetOutrightIncAsync(string clientName, CancellationToken ca
                         //TODO:  Maybe we need to request full data first.
                     }
 
+#if (useQueue)
+                    {
+                        MyConsole.WriteLine(ConsoleColor.Green, $"1================ [gRPC Response->] OutrightInc:{receivedData.FTSocOddsId}");
+                        _outrightDataProcessor.EnqueueData(receivedData);
+                    }
+#else
+                    {
+                        MyConsole.WriteLine("#4 Reponse INC from server:");
+                        MyConsole.WriteLine(ConsoleColor.Green, $" {JsonSerializer.Serialize(receivedData)}");
+                    }
+#endif
 
-                    MyConsole.WriteLine("#4 Reponse INC from server:");
-                    MyConsole.WriteLine(ConsoleColor.Green, $" {JsonSerializer.Serialize(receivedData)}");
+
+
+
                 }
             }
         }
