@@ -16,6 +16,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gRPCSampleClient2", "gRPCSa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "gRPCSample.Core", "gRPCSample.Core\gRPCSample.Core.csproj", "{26F1E4BD-4940-4982-BD3F-DCCED48FAC59}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Apis", "Apis", "{5A4E119D-2B1D-4CCE-B94C-00F03B7FD5F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "gRPCClientApiApplication", "Apis\gRPCClientApiApplication\gRPCClientApiApplication.csproj", "{3453B0DF-E771-4667-A755-9BAF98EA22A3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,9 +42,16 @@ Global
 		{26F1E4BD-4940-4982-BD3F-DCCED48FAC59}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{26F1E4BD-4940-4982-BD3F-DCCED48FAC59}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{26F1E4BD-4940-4982-BD3F-DCCED48FAC59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3453B0DF-E771-4667-A755-9BAF98EA22A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3453B0DF-E771-4667-A755-9BAF98EA22A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3453B0DF-E771-4667-A755-9BAF98EA22A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3453B0DF-E771-4667-A755-9BAF98EA22A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3453B0DF-E771-4667-A755-9BAF98EA22A3} = {5A4E119D-2B1D-4CCE-B94C-00F03B7FD5F2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {22ECAEE5-844E-49DE-B1AB-C2180DF0E078}
