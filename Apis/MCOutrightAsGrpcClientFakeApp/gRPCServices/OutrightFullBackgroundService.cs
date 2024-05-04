@@ -1,5 +1,5 @@
 ﻿
-namespace gRPCClientApiApplication.gRPCServices
+namespace MCOutrightAsGrpcClientFakeApp.gRPCServices
 {
     public class OutrightFullBackgroundService : BackgroundService
     {

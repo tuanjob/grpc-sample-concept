@@ -2,7 +2,7 @@
 using NLog.Extensions.Logging;
 using System.Runtime.InteropServices;
 
-namespace gRPCClientApiApplication.ServiceCollections
+namespace MCOutrightAsGrpcClientFakeApp.ServiceCollections
 {
     public static class LoggerCollection
     {

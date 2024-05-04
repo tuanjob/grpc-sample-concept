@@ -1,7 +1,7 @@
 // #define useRun
 
-using gRPCClientApiApplication.gRPCServices;
-using gRPCClientApiApplication.ServiceCollections;
+using MCOutrightAsGrpcClientFakeApp.gRPCServices;
+using MCOutrightAsGrpcClientFakeApp.ServiceCollections;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.Threading;

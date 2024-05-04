@@ -1,9 +1,9 @@
 ﻿using NXTK.GrpcServer.Models;
 using System.Threading.Tasks;
 
-namespace NXTK.GrpcServer.Services
+namespace NXTK.GrpcServer.Interfaces
 {
-    public interface IDataServiceInvoker
+    public interface IOutrightIncDataServiceInvoker
     {
         Task InvokeSendIncrementalData(HDPOUIncOdds incData);
     }

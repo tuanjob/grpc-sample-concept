@@ -8,9 +8,9 @@ namespace NXTK.GrpcServer.Models
     {
         public int FTSocOddsId { get; set; }
 
-        //
-        // Summary:
-        //     Early,Today, Running
+        /// <summary>
+        /// Summary: Early,Today, Running
+        /// </summary>
         public MarketType MarketType { get; set; }
 
         public ModType OddsType { get; set; }
@@ -36,14 +36,14 @@ namespace NXTK.GrpcServer.Models
     {
         public MarketType CurrentMarketType { get; set; }
 
-        //
-        // Summary:
-        //     matchId
+        /// <summary>
+        /// Summary: matchId
+        /// </summary>
         public int FTSocOddsId { get; set; }
 
-        //
-        // Summary:
-        //     SportType
+        /// <summary>
+        /// Summary: SportType
+        /// </summary>
         public string GameType { get; set; }
 
         //public Dictionary<Language, string> GameDescList { get; set; }

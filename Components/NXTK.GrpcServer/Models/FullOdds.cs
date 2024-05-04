@@ -114,19 +114,10 @@ namespace NXTK.GrpcServer.Models
 
         public bool IsTradeIn { get; set; }
 
-        //
-        // Summary:
-        //     Trade In ticket赢的百分比
         public int WinningPercent { get; set; }
 
-        //
-        // Summary:
-        //     Trade In ticket 输的百分比
         public int LosePercent { get; set; }
 
-        //
-        // Summary:
-        //     是否为SpecialMatch
         public bool IsSpecialMatch { get; set; }
 
         public bool IsDelay { get; set; }

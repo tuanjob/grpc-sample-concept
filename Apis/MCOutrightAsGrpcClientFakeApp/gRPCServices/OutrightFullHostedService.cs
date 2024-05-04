@@ -1,7 +1,7 @@
 ﻿
-using gRPCClientApiApplication.Controllers;
+using MCOutrightAsGrpcClientFakeApp.Controllers;
 
-namespace gRPCClientApiApplication.gRPCServices
+namespace MCOutrightAsGrpcClientFakeApp.gRPCServices
 {
     public class OutrightFullHostedService : IHostedService
     {

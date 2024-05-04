@@ -1,25 +1,28 @@
 ﻿using DataServicePackage;
 using Grpc.Core;
 using NXTK.GrpcServer.Helpers;
+using NXTK.GrpcServer.Interfaces;
 using NXTK.GrpcServer.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using static DataServicePackage.DataService;
 
 namespace NXTK.GrpcServer.Services
 {
-    public class DataServiceImpl : DataServiceBase, IDataServiceInvoker
+    public class GrpcDataService : DataServiceBase, IOutrightIncDataServiceInvoker
     {
         private static ConcurrentDictionary<string, ClientStreamData> _clientStreams = new ConcurrentDictionary<string, ClientStreamData>();
-        private static ConcurrentDictionary<string, Queue<DataResponse>> _messageQueues = new ConcurrentDictionary<string, Queue<DataResponse>>();
+        // private static ConcurrentDictionary<string, Queue<DataResponse>> _messageQueues = new ConcurrentDictionary<string, Queue<DataResponse>>();
         private readonly object _lock = new object();
 
-        public DataServiceImpl()
+
+        private readonly IOutrightFullDataServiceInvoker _externalDataService;
+        // private readonly ILogger<GrpcDataService> _logger; // TODO
+        public GrpcDataService(IOutrightFullDataServiceInvoker externalDataService)
         {
-            
+            _externalDataService = externalDataService;
         }
 
 
@@ -34,8 +37,9 @@ namespace NXTK.GrpcServer.Services
         {
             Console.WriteLine($"[FULL][Client \"{request.ClientId}\" is connected.]");
 
+            var outrightFullData = _externalDataService.GetOutrightFullData();
+
             // #1 FULL DATA at the initial connection
-            var outrightFullData = new List<FullOdds>(){ }; // prepare data here
             var dataStream = await StreamHelper.SerializeToByteStringAsync(outrightFullData);
 
             // Reset MessageQueues (TODO)
@@ -87,7 +91,6 @@ namespace NXTK.GrpcServer.Services
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"=====> [INC] Client {request.ClientId} Disconnected at {DateTime.Now}");
-                // Reset the colors to their defaults
                 Console.ResetColor();
 
                 lock (_lock)

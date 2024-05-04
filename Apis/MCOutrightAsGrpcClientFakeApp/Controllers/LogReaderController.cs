@@ -1,7 +1,6 @@
-using gRPCClientApiApplication.gRPCServices;
 using Microsoft.AspNetCore.Mvc;
 
-namespace gRPCClientApiApplication.Controllers
+namespace MCOutrightAsGrpcClientFakeApp.Controllers
 {
     [ApiController]
     [Route("[controller]")]

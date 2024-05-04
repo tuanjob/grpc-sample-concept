@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using NXTK.GrpcServer.Interfaces;
 using NXTK.GrpcServer.Services;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace NXTK.GrpcServer
 {
@@ -10,7 +8,7 @@ namespace NXTK.GrpcServer
     {
         public static IServiceCollection AddGrpcServerService(this IServiceCollection services)
         {
-            services.AddSingleton<IDataServiceInvoker, DataServiceImpl>();
+            services.AddSingleton<IOutrightIncDataServiceInvoker, GrpcDataService>();
 
             return services;
         }

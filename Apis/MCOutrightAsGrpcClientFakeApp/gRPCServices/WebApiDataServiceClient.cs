@@ -6,7 +6,7 @@ using gRPCSample.Core.Models;
 using Polly;
 using System.Text.Json;
 
-namespace gRPCClientApiApplication.gRPCServices
+namespace MCOutrightAsGrpcClientFakeApp.gRPCServices
 {
     public class WebApiDataServiceClient
     {
