@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Autofac;
+using System;
 
 namespace MCServiceFake.ConsoleApp.RegisterServices
 {
     public class DependencyResolver
     {
-        public static IServiceProvider ServiceProvider { get; private set; }
+        public static IContainer Container { get; private set; }
 
-        public static void Initialize(IServiceProvider serviceProvider)
+        public static void Initialize(IContainer container)
         {
-            ServiceProvider = serviceProvider;
+            Container = container;
         }
     }
 }

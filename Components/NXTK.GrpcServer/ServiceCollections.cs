@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Autofac;
 using NXTK.GrpcServer.Interfaces;
 using NXTK.GrpcServer.Services;
 
@@ -6,11 +6,14 @@ namespace NXTK.GrpcServer
 {
     public static class ServiceCollections
     {
-        public static IServiceCollection AddGrpcServerService(this IServiceCollection services)
+        public static ContainerBuilder RegisterNXTKGrpcServices(this ContainerBuilder builder)
         {
-            services.AddSingleton<IOutrightIncDataServiceInvoker, GrpcDataService>();
+            // Register services with Autofac
+            builder.RegisterType<GrpcDataService>().As<IOutrightIncDataServiceInvoker>().SingleInstance();
 
-            return services;
+            // Add other service registrations here...
+
+            return builder;
         }
     }
 }

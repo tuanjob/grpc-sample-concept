@@ -1,5 +1,5 @@
-﻿using MCServiceFake.ConsoleApp.Services;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Autofac;
+using MCServiceFake.ConsoleApp.Services;
 using NXTK.GrpcServer;
 using NXTK.GrpcServer.Interfaces;
 
@@ -7,18 +7,23 @@ namespace MCServiceFake.ConsoleApp.RegisterServices
 {
     public static class NXTKServiceCollections
     {
-        /// <summary>
-        /// Register all services for WebServerController
-        /// </summary>
         public static void RegisterServices()
         {
-            var services = new ServiceCollection();
-            services.AddScoped<IOutrightFullDataServiceInvoker, OutrightFullDataServiceBuilder>();
+            var builder = new ContainerBuilder();
 
-            var serviceProvider = services.AddGrpcServerService()
-                                          .BuildServiceProvider();
+            // Register services with Autofac
+            builder
+                .RegisterNXTKGrpcServices()
+                .RegisterType<OutrightFullDataServiceBuilder>().As<IOutrightFullDataServiceInvoker>().InstancePerLifetimeScope();
 
-            DependencyResolver.Initialize(serviceProvider);
+            // Register additional services with Autofac if needed
+
+            // Build the Autofac container
+            var container = builder.Build();
+
+            // Return the Autofac container
+            // return container;
+            DependencyResolver.Initialize(container);
         }
     }
 }

@@ -1,5 +1,5 @@
-﻿using MCServiceFake.ConsoleApp.RegisterServices;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Autofac;
+using MCServiceFake.ConsoleApp.RegisterServices;
 using NXTK.GrpcServer;
 using NXTK.GrpcServer.Interfaces;
 using System;
@@ -15,7 +15,7 @@ namespace MCServiceFake.ConsoleApp
 
             //#1- Register Services
             NXTKServiceCollections.RegisterServices();
-            var externalDataService = DependencyResolver.ServiceProvider.GetService<IOutrightFullDataServiceInvoker>();
+            var externalDataService = DependencyResolver.Container.Resolve<IOutrightFullDataServiceInvoker>();
 
             //#1- Register Services
             var grpcServer = new NXTKGrpcServer(externalDataService);
@@ -46,7 +46,7 @@ namespace MCServiceFake.ConsoleApp
 
         static async Task IvokeIncData()
         {
-            var dataServiceInvoker = DependencyResolver.ServiceProvider.GetService<IOutrightIncDataServiceInvoker>();
+            var dataServiceInvoker = DependencyResolver.Container.Resolve<IOutrightIncDataServiceInvoker>();
 
             await dataServiceInvoker.InvokeSendIncrementalData(new NXTK.GrpcServer.Models.HDPOUIncOdds { Data = "ababw", FTSocOddsId = DateTime.Now.Millisecond });
 

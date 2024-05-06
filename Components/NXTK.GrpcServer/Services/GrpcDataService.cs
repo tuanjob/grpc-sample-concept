@@ -5,7 +5,6 @@ using NXTK.GrpcServer.Interfaces;
 using NXTK.GrpcServer.Models;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using static DataServicePackage.DataService;
 
