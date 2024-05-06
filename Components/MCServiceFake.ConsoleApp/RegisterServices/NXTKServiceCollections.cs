@@ -2,6 +2,7 @@
 using MCServiceFake.ConsoleApp.Services;
 using NXTK.GrpcServer;
 using NXTK.GrpcServer.Interfaces;
+using NXTK.GrpcServer.Services;
 
 namespace MCServiceFake.ConsoleApp.RegisterServices
 {
@@ -12,9 +13,8 @@ namespace MCServiceFake.ConsoleApp.RegisterServices
             var builder = new ContainerBuilder();
 
             // Register services with Autofac
-            builder
-                .RegisterNXTKGrpcServices()
-                .RegisterType<OutrightFullDataServiceBuilder>().As<IOutrightFullDataServiceInvoker>().InstancePerLifetimeScope();
+            builder.RegisterType<GrpcDataService>().As<IOutrightIncDataServiceInvoker>().SingleInstance();
+            builder.RegisterType<OutrightFullDataServiceBuilder>().As<IOutrightFullDataServiceInvoker>().InstancePerLifetimeScope();
 
             // Register additional services with Autofac if needed
 

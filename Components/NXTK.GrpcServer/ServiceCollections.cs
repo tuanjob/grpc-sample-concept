@@ -6,7 +6,7 @@ namespace NXTK.GrpcServer
 {
     public static class ServiceCollections
     {
-        public static ContainerBuilder RegisterNXTKGrpcServices(this ContainerBuilder builder)
+        public static ContainerBuilder AddAutofacNXTKGrpcServices(this ContainerBuilder builder)
         {
             // Register services with Autofac
             builder.RegisterType<GrpcDataService>().As<IOutrightIncDataServiceInvoker>().SingleInstance();
